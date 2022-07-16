@@ -1,0 +1,38 @@
+{
+  "author": "nparshook",
+  "license": "MIT",
+  "name": "openrct2-queue-assist",
+  "version": "0.1",
+  "description": "OpenRCT2 plugin for assisting with queue construction.",
+  "homepage": "https://github.com/nparshook/openrct2-queue-assist#readme",
+  "private": true,
+  "main": "app.js",
+  "scripts": {
+    "start": "npm run watch",
+    "watch": "nodemon --watch ./src --ext js,ts",
+    "build": "npm run lint && rollup --config rollup.config.js --environment BUILD:production",
+    "build:dev": "rollup --config rollup.config.js",
+    "lint": "eslint ./src --ext .js --ext .ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nparshook/openrct2-queue-assist.git"
+  },
+  "bugs": {
+    "url": "https://github.com/nparshook/openrct2-queue-assist/issues"
+  },
+  "devDependencies": {
+    "@rollup/plugin-replace": "^4.0.0",
+    "@rollup/plugin-typescript": "^8.3.3",
+    "@typescript-eslint/eslint-plugin": "^5.30.6",
+    "@typescript-eslint/parser": "^5.30.6",
+    "eslint": "^8.19.0",
+    "eslint-plugin-import": "^2.26.0",
+    "nodemon": "^2.0.19",
+    "platform-folders": "^0.6.0",
+    "rollup": "^2.77.0",
+    "rollup-plugin-terser": "^7.0.2",
+    "tslib": "^2.4.0",
+    "typescript": "^4.7.4"
+  }
+}
