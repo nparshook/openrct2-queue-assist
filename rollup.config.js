@@ -27,7 +27,7 @@ const config = {
   },
   plugins: [
     replace({
-      include: "./src/environment.ts",
+      include: "./src/utils/environment.ts",
       preventAssignment: true,
       values: {
         __PLUGIN_NAME__: pkg.name,
@@ -44,7 +44,7 @@ const config = {
         comments: false,
         quote_style: 1,
         wrap_iife: true,
-        // preamble: "// Get the latest version: https://github.com/Basssiiie/OpenRCT2-ProxyPather",
+        preamble: "// Get the latest version: https://github.com/nparshook/openrct2-queue-assist",
         beautify: isDevelop,
       },
       mangle: {

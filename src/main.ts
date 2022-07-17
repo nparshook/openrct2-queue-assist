@@ -1,10 +1,16 @@
-import {
-  pluginName,
-  pluginVersion
-} from './environment';
+import {QueueAssistWindow} from './ui/queue_assist_window';
+import {isUiAvailable} from './utils/environment';
 
 const main = (): void => {
-  console.log(`${pluginName}:${pluginVersion} has started.`);
+  if (!isUiAvailable || network.mode != 'none') {
+    return;
+  }
+  ui.registerMenuItem('Queue Assist', () => openQueueAssistWindow());
 };
+
+function openQueueAssistWindow() {
+  const window = new QueueAssistWindow();
+  window.open();
+}
 
 export default main;

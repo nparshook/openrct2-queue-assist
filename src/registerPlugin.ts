@@ -1,9 +1,6 @@
 /// <reference path="../lib/openrct2.d.ts" />
-import {
-  pluginName,
-  pluginVersion,
-} from './environment';
 import main from './main';
+import {pluginName, pluginVersion,} from './utils/environment';
 
 registerPlugin({
   name: pluginName,
