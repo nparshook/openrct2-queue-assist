@@ -1,9 +1,9 @@
 import {QueueManager} from '../queue/queue_manager';
-import {pluginName, pluginVersion} from '../utils/environment';
+import {pluginVersion} from '../utils/environment';
 import {getObjectNames, getPathRailings, getPathSurfaces, getRideNames, getRides} from '../utils/helpers';
 
 const windowId = 'queue.assist.main.window';
-const windowTitle = `${pluginName} ${pluginVersion}`;
+const windowTitle = `Queue Assist (v${pluginVersion})`;
 const windowWidth = 250;
 const windowHeight = 200;
 
@@ -21,72 +21,20 @@ const railingSelectionId = 'queue.assist.queue.railing.selection';
 const queueStyleLabelId = 'queue.assist.queue.style.label';
 const queueStyleApplyId = 'queue.assist.queue.style.apply';
 
-function disable_style_editor(window: QueueAssistWindow, enabled: boolean) {
-  window.queueStyleLabelWidget.isDisabled = enabled;
-  window.queueStyleApplyWidget.isDisabled = enabled;
-  window.surfaceSelectionWidget.isDisabled = enabled;
-  window.railingSelectionWidget.isDisabled = enabled;
-}
-
-function select_ride_queue(window: QueueAssistWindow, ride_index: number) {
-  if (ride_index < 0) {
-    window.manager.unhighlight();
-    disable_style_editor(window, true);
-    window.surfaceSelectionWidget.selectedIndex = 0;
-    window.railingSelectionWidget.selectedIndex = 0;
-  } else {
-    window.manager.toggle_ride_highlight(window.rides[ride_index].id);
-    disable_style_editor(window, false);
-    const current_surface = window.manager.currentSurface;
-    const current_railings = window.manager.currentRailings;
-    if (current_surface === null || current_railings === null) {
-      return;
-    }
-    window.surfaceSelectionWidget.selectedIndex =
-        window.surfaceIdToIdx[current_surface] + 1;
-    window.railingSelectionWidget.selectedIndex =
-        window.railingsIdToIdx[current_railings] + 1;
-  }
-}
-
-function update_queue_style(window: QueueAssistWindow) {
-  const surface_index = (window.surfaceSelectionWidget?.selectedIndex || 0) - 1;
-  const railings_index =
-      (window.railingSelectionWidget?.selectedIndex || 0) - 1;
-
-  if (surface_index <= 0 || railings_index <= 0) {
-    return;
-  }
-
-  window.manager.currentSurface = window.surfaceIdxToId[surface_index];
-  window.manager.currentRailings = window.railingsIdxToId[railings_index];
-}
-
-function queue_style_dropdown_change(window: QueueAssistWindow, index: number) {
-  index = index - 1;
-  if (index < 0) {
-    window.queueStyleApplyWidget.isDisabled = true;
-    return;
-  }
-  window.queueStyleApplyWidget.isDisabled = false;
-}
-
 export class QueueAssistWindow {
-  onReset: (() => void)|undefined;
-  uiWindow: Window|null = null;
-  rideDropdownHeadline = ['Select a ride'];
-  surfaceDropdownHeadline = ['Select a surface style'];
-  railingDropdownHeadline = ['Select a railing style'];
-  manager: QueueManager;
-  rides: Ride[];
-  rideNames: string[];
-  surfaces: LoadedObject[];
-  railings: LoadedObject[];
-  surfaceIdToIdx: Record<number, number>;
-  surfaceIdxToId: Record<number, number>;
-  railingsIdToIdx: Record<number, number>;
-  railingsIdxToId: Record<number, number>;
-
+  private uiWindow: Window|null = null;
+  private rideDropdownHeadline = ['Select a ride'];
+  private surfaceDropdownHeadline = ['Select a surface style'];
+  private railingDropdownHeadline = ['Select a railing style'];
+  private manager: QueueManager;
+  private rides: Ride[];
+  private rideNames: string[];
+  private surfaces: LoadedObject[];
+  private railings: LoadedObject[];
+  private surfaceIdToIdx: Record<number, number>;
+  private surfaceIdxToId: Record<number, number>;
+  private railingsIdToIdx: Record<number, number>;
+  private railingsIdxToId: Record<number, number>;
 
   constructor() {
     this.manager = new QueueManager();
@@ -110,190 +58,274 @@ export class QueueAssistWindow {
     });
   }
 
-  get rideSelectionWidget(): DropdownWidget {
-    return this.uiWindow?.findWidget(rideSelectionId) as DropdownWidget;
-  }
-
-  get rideCheckboxWidget(): CheckboxWidget {
-    return this.uiWindow?.findWidget(rideCheckboxId) as CheckboxWidget;
-  }
-
-  get orphanCheckboxWidget(): CheckboxWidget {
-    return this.uiWindow?.findWidget(orpahnCheckboxId) as CheckboxWidget;
-  }
-
-  get queueVisibilityToggle(): ButtonWidget {
-    return this.uiWindow?.findWidget(queueVisibilityToggleId) as ButtonWidget;
-  }
-
-  get surfaceSelectionWidget(): DropdownWidget {
-    return this.uiWindow?.findWidget(surfaceSelectionId) as DropdownWidget;
-  }
-
-  get railingSelectionWidget(): DropdownWidget {
-    return this.uiWindow?.findWidget(railingSelectionId) as DropdownWidget;
-  }
-
-  get queueStyleLabelWidget(): LabelWidget {
-    return this.uiWindow?.findWidget(queueStyleLabelId) as LabelWidget;
-  }
-
-  get queueStyleApplyWidget(): ButtonWidget {
-    return this.uiWindow?.findWidget(queueStyleApplyId) as ButtonWidget;
-  }
-
-  set rideDropdownContent(content: string[]) {
-    this.rideSelectionWidget.items = this.rideDropdownHeadline.concat(content);
-  }
-
-  set surfaceDropdownContent(content: string[]) {
-    this.surfaceSelectionWidget.items =
-        this.surfaceDropdownHeadline.concat(content);
-  }
-
-  set railingDropdownContent(content: string[]) {
-    this.railingSelectionWidget.items =
-        this.railingDropdownHeadline.concat(content);
-  }
-
   open(): void {
-    const self = this;
     const window = ui.getWindow(windowId);
-
+    // If the window is already open let's close it first.
+    // This refreshes the data.
     if (window) {
-      console.log('The queue assist window is already shown.');
-      window.bringToFront();
-    } else {
-      self.uiWindow = ui.openWindow({
-        classification: windowId,
-        width: windowWidth,
-        height: windowHeight,
-        title: windowTitle,
-        onClose: () => self.manager.unhighlight(),
-        widgets: [
-          <CheckboxWidget>{
-            name: rideCheckboxId,
-            type: 'checkbox',
-            isChecked: true,
-            width: checkboxWidth,
-            height: 20,
-            x: 5,
-            y: 20,
-            onChange: () => {
-              if (!self.rideCheckboxWidget.isChecked) {
-                self.manager.unhighlight();
-                self.queueVisibilityToggle.isDisabled = true;
-                disable_style_editor(self, true);
-                return;
-              }
-              self.queueVisibilityToggle.isDisabled = false;
-              self.rideSelectionWidget.isDisabled = false;
-              self.orphanCheckboxWidget.isChecked = false;
-              disable_style_editor(self, false);
-              const ride_index =
-                  (self.rideSelectionWidget?.selectedIndex || 0) - 1;
-              select_ride_queue(self, ride_index);
-            }
-          },
-          <DropdownWidget>{
-            name: rideSelectionId,
-            type: 'dropdown',
-            width: largeWidgetWidth,
-            height: widgetHeight,
-            x: 20,
-            y: 20,
-            items: self.rideDropdownHeadline,
-            selectedIndex: 0,
-            onChange: (ride_index: number) => {
-              select_ride_queue(self, ride_index - 1);
-            },
-          },
-          <CheckboxWidget>{
-            name: orpahnCheckboxId,
-            type: 'checkbox',
-            text: 'Orphans',
-            isChecked: false,
-            width: checkboxWidth,
-            height: widgetHeight,
-            x: 5,
-            y: 40,
-            onChange: () => {
-              if (!self.orphanCheckboxWidget.isChecked) {
-                self.manager.unhighlight();
-                self.queueVisibilityToggle.isDisabled = true;
-                return;
-              }
-              self.queueVisibilityToggle.isDisabled = false;
-              self.rideCheckboxWidget.isChecked = false;
-              self.rideSelectionWidget.isDisabled = true;
-              disable_style_editor(self, true);
-              self.manager.highlight_orphans();
-            }
-          },
-          <ButtonWidget>{
-            name: queueVisibilityToggleId,
-            type: 'button',
-            text: 'Toggle Queue Visibility',
-            width: largeWidgetWidth,
-            height: widgetHeight,
-            x: 20,
-            y: 60,
-            onClick: () => self.manager.toggle_visibility(),
-          },
-          <LabelWidget>{
-            name: queueStyleLabelId,
-            type: 'label',
-            text: 'Queue Style Editor',
-            width: largeWidgetWidth,
-            height: widgetHeight,
-            x: 5,
-            y: 90,
-          },
-          <DropdownWidget>{
-            name: surfaceSelectionId,
-            type: 'dropdown',
-            width: largeWidgetWidth,
-            height: widgetHeight,
-            x: 20,
-            y: 110,
-            items: self.surfaceDropdownHeadline,
-            selectedIndex: 0,
-            onChange: (index: number) => {
-              queue_style_dropdown_change(self, index);
-            }
-          },
-          <DropdownWidget>{
-            name: railingSelectionId,
-            type: 'dropdown',
-            width: largeWidgetWidth,
-            height: widgetHeight,
-            x: 20,
-            y: 140,
-            items: self.railingDropdownHeadline,
-            selectedIndex: 0,
-            onChange: (index: number) => {
-              queue_style_dropdown_change(self, index);
-            }
-          },
-          <ButtonWidget>{
-            name: queueStyleApplyId,
-            type: 'button',
-            text: 'Apply Queue Style',
-            width: largeWidgetWidth,
-            height: widgetHeight,
-            x: 20,
-            y: 170,
-            onClick: () => {
-              update_queue_style(self);
-            }
-          },
-        ]
-      });
-
-      self.rideDropdownContent = self.rideNames;
-      self.surfaceDropdownContent = getObjectNames(self.surfaces);
-      self.railingDropdownContent = getObjectNames(self.railings);
-      disable_style_editor(self, true);
+      window.close();
     }
+
+    this.uiWindow = ui.openWindow(this.constructWindow());
+    this.rideDropdownContent = this.rideNames;
+    this.surfaceDropdownContent = getObjectNames(this.surfaces);
+    this.railingDropdownContent = getObjectNames(this.railings);
+    this.disable_style_editor(true);
+  }
+
+  private getWidgetById(widget_id: string): Widget {
+    return this.uiWindow?.findWidget(widget_id) as Widget;
+  }
+
+  private get rideSelectionWidget(): DropdownWidget {
+    return this.getWidgetById(rideSelectionId) as DropdownWidget;
+  }
+
+  private get rideCheckboxWidget(): CheckboxWidget {
+    return this.getWidgetById(rideCheckboxId) as CheckboxWidget;
+  }
+
+  private get orphanCheckboxWidget(): CheckboxWidget {
+    return this.getWidgetById(orpahnCheckboxId) as CheckboxWidget;
+  }
+
+  private get queueVisibilityToggle(): ButtonWidget {
+    return this.getWidgetById(queueVisibilityToggleId) as ButtonWidget;
+  }
+
+  private get surfaceSelectionWidget(): DropdownWidget {
+    return this.getWidgetById(surfaceSelectionId) as DropdownWidget;
+  }
+
+  private get railingSelectionWidget(): DropdownWidget {
+    return this.getWidgetById(railingSelectionId) as DropdownWidget;
+  }
+
+  private get queueStyleLabelWidget(): LabelWidget {
+    return this.getWidgetById(queueStyleLabelId) as LabelWidget;
+  }
+
+  private get queueStyleApplyWidget(): ButtonWidget {
+    return this.getWidgetById(queueStyleApplyId) as ButtonWidget;
+  }
+
+  private setDropDownContent(
+      widget: DropdownWidget, headline: string[], content: string[]) {
+    widget.items = headline.concat(content);
+  }
+
+  private set rideDropdownContent(content: string[]) {
+    this.setDropDownContent(
+        this.rideSelectionWidget, this.rideDropdownHeadline, content);
+  }
+
+  private set surfaceDropdownContent(content: string[]) {
+    this.setDropDownContent(
+        this.surfaceSelectionWidget, this.surfaceDropdownHeadline, content);
+  }
+
+  private set railingDropdownContent(content: string[]) {
+    this.setDropDownContent(
+        this.railingSelectionWidget, this.railingDropdownHeadline, content);
+  }
+
+  private constructRideCheckbox() {
+    return <CheckboxWidget>{
+      name: rideCheckboxId,
+      type: 'checkbox',
+      isChecked: true,
+      width: checkboxWidth,
+      height: 20,
+      x: 5,
+      y: 20,
+      onChange: () => this.ride_checkbox_change()
+    };
+  }
+
+  private constructOrphanCheckbox() {
+    return <CheckboxWidget>{
+      name: orpahnCheckboxId,
+      type: 'checkbox',
+      text: 'Orphans',
+      isChecked: false,
+      width: checkboxWidth,
+      height: widgetHeight,
+      x: 5,
+      y: 40,
+      onChange: () => this.orphan_checkbox_change()
+    };
+  }
+
+  private constructRideDropdown() {
+    return <DropdownWidget>{
+      name: rideSelectionId,
+      type: 'dropdown',
+      width: largeWidgetWidth,
+      height: widgetHeight,
+      x: 20,
+      y: 20,
+      items: this.rideDropdownHeadline,
+      selectedIndex: 0,
+      onChange: (ride_index: number) => this.select_ride_queue(ride_index - 1)
+    };
+  }
+
+  private constructVisibilityToggle() {
+    return <ButtonWidget>{
+      name: queueVisibilityToggleId,
+      type: 'button',
+      text: 'Toggle Queue Visibility',
+      width: largeWidgetWidth,
+      height: widgetHeight,
+      x: 20,
+      y: 60,
+      onClick: () => this.manager.toggle_visibility(),
+    };
+  }
+
+  private constructStyleLabel() {
+    return <LabelWidget>{
+      name: queueStyleLabelId,
+      type: 'label',
+      text: 'Queue Style Editor',
+      width: largeWidgetWidth,
+      height: widgetHeight,
+      x: 5,
+      y: 90,
+    };
+  }
+
+  private constructSurfaceDropdown() {
+    return <DropdownWidget>{
+      name: surfaceSelectionId,
+      type: 'dropdown',
+      width: largeWidgetWidth,
+      height: widgetHeight,
+      x: 20,
+      y: 110,
+      items: this.surfaceDropdownHeadline,
+      selectedIndex: 0,
+      onChange: (index: number) => this.queue_style_dropdown_change(index)
+    };
+  }
+
+  private constructRailingsDropdown() {
+    return <DropdownWidget>{
+      name: railingSelectionId,
+      type: 'dropdown',
+      width: largeWidgetWidth,
+      height: widgetHeight,
+      x: 20,
+      y: 140,
+      items: this.railingDropdownHeadline,
+      selectedIndex: 0,
+      onChange: (index: number) => this.queue_style_dropdown_change(index)
+    };
+  }
+
+  private constructStyleApplyBtn() {
+    return <ButtonWidget>{
+      name: queueStyleApplyId,
+      type: 'button',
+      text: 'Apply Queue Style',
+      width: largeWidgetWidth,
+      height: widgetHeight,
+      x: 20,
+      y: 170,
+      onClick: () => this.update_queue_style()
+    };
+  }
+
+  private constructWindow() {
+    return <WindowDesc>{
+      classification: windowId,
+      width: windowWidth,
+      height: windowHeight,
+      title: windowTitle,
+      onClose: () => this.manager.unhighlight(),
+      widgets: [
+        this.constructRideCheckbox(), this.constructRideDropdown(),
+        this.constructOrphanCheckbox(), this.constructVisibilityToggle(),
+        this.constructStyleLabel(), this.constructSurfaceDropdown(),
+        this.constructRailingsDropdown(), this.constructStyleApplyBtn()
+      ]
+    };
+  }
+
+  private ride_checkbox_change() {
+    if (!this.rideCheckboxWidget.isChecked) {
+      this.manager.unhighlight();
+      this.queueVisibilityToggle.isDisabled = true;
+      this.disable_style_editor(true);
+      return;
+    }
+    this.queueVisibilityToggle.isDisabled = false;
+    this.rideSelectionWidget.isDisabled = false;
+    this.orphanCheckboxWidget.isChecked = false;
+    this.disable_style_editor(false);
+    const ride_index = (this.rideSelectionWidget?.selectedIndex || 0) - 1;
+    this.select_ride_queue(ride_index);
+  }
+
+  private orphan_checkbox_change() {
+    if (!this.orphanCheckboxWidget.isChecked) {
+      this.manager.unhighlight();
+      this.queueVisibilityToggle.isDisabled = true;
+      return;
+    }
+    this.queueVisibilityToggle.isDisabled = false;
+    this.rideCheckboxWidget.isChecked = false;
+    this.rideSelectionWidget.isDisabled = true;
+    this.disable_style_editor(true);
+    this.manager.highlight_orphans();
+  }
+
+  private disable_style_editor(enabled: boolean) {
+    this.queueStyleLabelWidget.isDisabled = enabled;
+    this.queueStyleApplyWidget.isDisabled = enabled;
+    this.surfaceSelectionWidget.isDisabled = enabled;
+    this.railingSelectionWidget.isDisabled = enabled;
+  }
+
+  private select_ride_queue(ride_index: number) {
+    if (ride_index < 0) {
+      this.manager.unhighlight();
+      this.disable_style_editor(true);
+      this.surfaceSelectionWidget.selectedIndex = 0;
+      this.railingSelectionWidget.selectedIndex = 0;
+    } else {
+      this.manager.toggle_ride_highlight(this.rides[ride_index].id);
+      this.disable_style_editor(false);
+      const current_surface = this.manager.currentSurface;
+      const current_railings = this.manager.currentRailings;
+      if (current_surface === null || current_railings === null) {
+        return;
+      }
+      this.surfaceSelectionWidget.selectedIndex =
+          this.surfaceIdToIdx[current_surface] + 1;
+      this.railingSelectionWidget.selectedIndex =
+          this.railingsIdToIdx[current_railings] + 1;
+    }
+  }
+
+  private queue_style_dropdown_change(index: number) {
+    index = index - 1;
+    if (index < 0) {
+      this.queueStyleApplyWidget.isDisabled = true;
+      return;
+    }
+    this.queueStyleApplyWidget.isDisabled = false;
+  }
+
+  private update_queue_style() {
+    const surface_index = (this.surfaceSelectionWidget?.selectedIndex || 0) - 1;
+    const railings_index =
+        (this.railingSelectionWidget?.selectedIndex || 0) - 1;
+    if (surface_index < 0 || railings_index < 0) {
+      return;
+    }
+
+    this.manager.currentSurface = this.surfaceIdxToId[surface_index];
+    this.manager.currentRailings = this.railingsIdxToId[railings_index];
   }
 }
