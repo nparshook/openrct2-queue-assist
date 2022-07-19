@@ -22,7 +22,7 @@ An OpenRCT2 Plugin to assist with styling your ride queues.
 - Change the surface and railings style of a ride's queue.
 
 ## 🚀 Installation
-1. Download the latest version of the plugin from the [Releases page](https://github.com/nparshook/queue-assist/releases).
+1. Download the latest version of the plugin from the [Releases page](https://github.com/nparshook/openrct2-queue-assist/releases).
 2. To install it, put the downloaded `*.js` file into your `/OpenRCT2/plugin` folder.
     - Easiest way to find the OpenRCT2-folder is by launching the OpenRCT2 game, click and hold on the red toolbox in the main menu, and select "Open custom content folder".
     - Otherwise this folder is commonly found in `C:\Users\<YOUR NAME>\Documents\OpenRCT2\plugin` on Windows.
